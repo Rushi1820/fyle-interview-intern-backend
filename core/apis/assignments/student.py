@@ -1,8 +1,8 @@
-from flask import Blueprint
+from flask import Blueprint,jsonify
 from core import db
 from core.apis import decorators
 from core.apis.responses import APIResponse
-from core.models.assignments import Assignment
+from core.models.assignments import Assignment, AssignmentStateEnum
 
 from .schema import AssignmentSchema, AssignmentSubmitSchema
 student_assignments_resources = Blueprint('student_assignments_resources', __name__)
@@ -38,11 +38,27 @@ def submit_assignment(p, incoming_payload):
     """Submit an assignment"""
     submit_assignment_payload = AssignmentSubmitSchema().load(incoming_payload)
 
+    # Check if the assignment has already been submitted
+    existing_assignment = Assignment.query.filter_by(
+        id=submit_assignment_payload.id,
+        student_id=p.user_id,
+        state=AssignmentStateEnum.SUBMITTED
+    ).first()
+
+    if existing_assignment:
+        return jsonify({'error':'FyleError','message' :'only a draft assignment can be submitted'}), 400
+
+    # If not already submitted, proceed with submission
     submitted_assignment = Assignment.submit(
         _id=submit_assignment_payload.id,
         teacher_id=submit_assignment_payload.teacher_id,
         auth_principal=p
     )
+    
+    # Update assignment state to SUBMITTED and commit changes
+    submitted_assignment.state = AssignmentStateEnum.SUBMITTED
     db.session.commit()
+
     submitted_assignment_dump = AssignmentSchema().dump(submitted_assignment)
     return APIResponse.respond(data=submitted_assignment_dump)
+

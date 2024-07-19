@@ -25,7 +25,7 @@ class Assignment(db.Model):
     id = db.Column(db.Integer, db.Sequence('assignments_id_seq'), primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey(Student.id), nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey(Teacher.id), nullable=True)
-    content = db.Column(db.Text)
+    content = db.Column(db.Text,nullable=False)
     grade = db.Column(BaseEnum(GradeEnum))
     state = db.Column(BaseEnum(AssignmentStateEnum), default=AssignmentStateEnum.DRAFT, nullable=False)
     created_at = db.Column(db.TIMESTAMP(timezone=True), default=helpers.get_utc_now, nullable=False)
@@ -66,7 +66,10 @@ class Assignment(db.Model):
         assertions.assert_valid(assignment.student_id == auth_principal.student_id, 'This assignment belongs to some other student')
         assertions.assert_valid(assignment.content is not None, 'assignment with empty content cannot be submitted')
 
-        assignment.teacher_id = teacher_id
+        if assignment.teacher_id is None or assignment.teacher_id == teacher_id:
+           assignment.teacher_id = teacher_id  # Set the teacher_id
+           assignment.state = AssignmentStateEnum.SUBMITTED
+        
         db.session.flush()
 
         return assignment
@@ -91,3 +94,11 @@ class Assignment(db.Model):
     @classmethod
     def get_assignments_by_teacher(cls):
         return cls.query.all()
+
+    @classmethod
+    def get_assignments_by_principal(cls):
+        return cls.query.all()
+    
+    @staticmethod
+    def get_assignments_by_teacher(teacher_id):
+        return Assignment.query.filter_by(teacher_id=teacher_id).all()
