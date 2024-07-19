@@ -56,3 +56,12 @@ pytest -vvv -s tests/
 # pytest --cov
 # open htmlcov/index.html
 ```
+
+### Docker Details
+
+```
+Name of the Repository: rushivardhan/fyle-assignment-rushi
+Pull command: docker pull rushivardhan/fyle-assignment-rushi:latest
+Run command: docker run -p 5000:5000 rushivardhan/fyle-assignment-rushi
+
+```
